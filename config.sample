@@ -1,0 +1,10 @@
+{
+  "username": "",
+  "password": "",
+  "host": "",
+  "port": 993,
+  "searchFilter": ["SEEN"]
+  "mailhops": {
+    "api_key": ""
+  }
+}
