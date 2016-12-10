@@ -1,5 +1,6 @@
 var MailListener = require("mail-listener2");
 var MailHops = require("mailhops");
+var Slack = require('slack-node');
 var chalk = require('chalk');
 var notifier = require('node-notifier');
 var logUpdate = require('log-update');
@@ -44,6 +45,13 @@ if(config && config.mailhops){
 var mailListener = new MailListener(configuration);
 
 var mailhops = new MailHops(mhconfiguration);
+
+var slack;
+// setup Slack
+if(config && config.slack){
+  slack = new Slack();
+  slack.setWebhook(config.slack.webhookUri);
+}
 
 mailListener.start(); // start listening
 
@@ -94,6 +102,39 @@ mailListener.on("mail", function(mail, seqno, attributes){
             'sound': true,
             'time': 5000
           });
+        }
+
+        let slackit = false;
+        // slack
+        if(slack){
+          // check slack filters
+          if(!!configuration.slack.fromAddress){
+            if(mail.from[0].address.toLowerCase().indexOf(configuration.slack.fromAddress.toLowerCase()) !== -1){
+              slackit = true;
+            }
+          } else if(!!configuration.slack.subjectFilter){
+            if(mail.subject.toLowerCase().indexOf(configuration.slack.subjectFilter.toLowerCase()) !== -1){
+              slackit = true;
+            }
+          } else { // no filters
+            slackit = true;
+          }
+          if(slackit){
+            slack.webhook({
+              channel: configuration.slack.channel,
+              username: "MailHopsBot",
+              text: 'New mail from '+mail.from[0].name+' '+mail.from[0].address,
+              attachments: [{
+                    title: 'MailHops route from '+start.city+', '+start.state+' ('+start.countryCode+') '+Math.round(mail.mailHops.distance.miles)+' mi.',
+                    title_link: mailhops.mapUrl(ips),
+                    text: mail.text
+                  }
+              ],
+              icon_emoji: "https://www.mailhops.com/images/mailhops-64.png"
+            }, function(err, response) {
+              if(err) console.log('Slack Error',err);
+            });
+          }
         }
       }
     });

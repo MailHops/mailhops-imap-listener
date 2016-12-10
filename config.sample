@@ -6,5 +6,10 @@
   "searchFilter": ["SEEN"]
   "mailhops": {
     "api_key": ""
+  },
+  "slack": { "webhookUri": ""
+    , "channel": "#channel"
+    , "subjectFilter": ""
+    , "fromAddress": ""
   }
 }
