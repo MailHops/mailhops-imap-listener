@@ -5,6 +5,7 @@ var notifier = require('node-notifier');
 var logUpdate = require('log-update');
 var _ = require('lodash');
 var config = require('./config.json');
+var pkg = require('./package.json');
 
 var configuration = {
   username: "", // imap username
@@ -29,7 +30,7 @@ var configuration = {
 var mhconfiguration = {
     api_key: "",
     api_version: 2,
-    app_name: "Node Inbox Report"
+    app_name: pkg.name+'-'+pkg.version
 };
 
 if(config){
@@ -72,13 +73,17 @@ mailListener.on("mail", function(mail, seqno, attributes){
 
       mail.mailHops = body.response;
       if(typeof mail.mailHops != 'undefined'){
+
         let start = mailhops.getStartHop(mail.mailHops.route);
         let end = mailhops.getEndHop(mail.mailHops.route);
+
         logUpdate(`${chalk.bold(mail.from[0].name+' '+mail.from[0].address)}`);
-        logUpdate.done()
+        logUpdate.done();
+
         logUpdate(`${chalk.green( start.city+', '+start.state+' ('+start.countryCode+')' )} -> ${chalk.red( end.city+', '+end.state+' ('+end.countryCode+')')} ${chalk.yellow(Math.round(mail.mailHops.distance.miles)+' mi.')}
         `);
-        logUpdate.done()
+        logUpdate.done();
+
         // notify
         if(configuration.notify){
           notifier.notify({
