@@ -1,6 +1,7 @@
 var MailListener = require("mail-listener2");
 var MailHops = require("mailhops");
 var chalk = require('chalk');
+var notifier = require('node-notifier');
 var logUpdate = require('log-update');
 var _ = require('lodash');
 var config = require('./config.json');
@@ -11,6 +12,7 @@ var configuration = {
   host: "", // imap host
   port: 993, // imap port
   tls: true,
+  notify: true,
   connTimeout: 10000, // Default by node-imap
   authTimeout: 5000, // Default by node-imap,
   debug: console.log, // Or your custom function with only one incoming argument. Default: null
@@ -33,6 +35,7 @@ var mhconfiguration = {
 if(config){
   configuration = _.merge(configuration,config);
 }
+
 if(config && config.mailhops){
   mhconfiguration = _.merge(mhconfiguration,config.mailhops);
 }
@@ -66,6 +69,7 @@ mailListener.on("mail", function(mail, seqno, attributes){
     mailhops.lookup(ips,function(err, res, body){
       if(err) return logUpdate(`${chalk.red('MailHops Error: '+err)}`);
       if(body.error && body.error.message) return logUpdate(`${chalk.red('MailHops Error: '+body.error.message)}`);
+
       mail.mailHops = body.response;
       if(typeof mail.mailHops != 'undefined'){
         let start = mailhops.getStartHop(mail.mailHops.route);
@@ -75,6 +79,17 @@ mailListener.on("mail", function(mail, seqno, attributes){
         logUpdate(`${chalk.green( start.city+', '+start.state+' ('+start.countryCode+')' )} -> ${chalk.red( end.city+', '+end.state+' ('+end.countryCode+')')} ${chalk.yellow(Math.round(mail.mailHops.distance.miles)+' mi.')}
         `);
         logUpdate.done()
+        // notify
+        if(configuration.notify){
+          notifier.notify({
+            'title': 'New mail from '+mail.from[0].name,
+            'subtitle': start.city+', '+start.state+' ('+start.countryCode+') '+Math.round(mail.mailHops.distance.miles)+' mi.',
+            'icon': start.flag,
+            'message': mail.subject,
+            'sound': true,
+            'time': 5000
+          });
+        }
       }
     });
   }
